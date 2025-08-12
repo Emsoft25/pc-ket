@@ -10,13 +10,13 @@ import org.json.JSONObject;
 public class InstalacionValidator {
 
     private final Logger logger = Logger.getInstance();
-    private final SistemaHelper sistemaHelper = new SistemaHelper();
+    private final HardwareFingerprintProvider hardwareProvider = new HardwareFingerprintProvider();
 
     public boolean validar() {
         logger.info("🔍 [InstalacionValidator] Iniciando validación de entorno...");
 
         // Validar existencia de activo.dat
-        if (!sistemaHelper.existeArchivoActivo()) {
+        if (!HardwareFingerprintProvider.existeArchivoActivo()) {
             logger.warn("❌ activo.dat no encontrado. El sistema no puede continuar.");
             return false;
         }

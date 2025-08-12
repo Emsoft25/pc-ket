@@ -1,12 +1,11 @@
 package com.emsoft.pos.forms;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.*;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.UnknownHostException;
-import java.util.*;
-import java.util.regex.*;
 import java.nio.file.*;
 import java.time.LocalDate;
 import org.json.JSONException;
@@ -94,7 +93,7 @@ public class HardwareFingerprintProvider {
 
     public static boolean validarHuellaConActivoDat(String huellaEsperada) {
         try {
-            Path path = Paths.get("config\\activo.dat");
+             Path path = Paths.get(System.getProperty("user.dir") + "/doc/activo.dat");
             if (!Files.exists(path)) {
                 Logger.getInstance().warn("⚠️ activo.dat no encontrado.");
                 return false;
@@ -112,13 +111,38 @@ public class HardwareFingerprintProvider {
 
     public static void guardarHuellaEnActivoDat(String huella) {
         try {
-            Path path = Paths.get("config\\activo.dat");
+             Path path = Paths.get(System.getProperty("user.dir") + "/doc/activo.dat");
             Files.write(path, huella.getBytes());
             Logger.getInstance().info("💾 [HardwareFingerprintProvider] Huella guardada en activo.dat");
         } catch (IOException e) {
             Logger.getInstance().error("💥 Error al guardar huella en activo.dat: " + e.getMessage());
         }
     }
+public static boolean existeArchivoActivo() {
+   Path path = Paths.get(System.getProperty("user.dir") + "/doc/activo.dat");
+    boolean existe = Files.exists(path);
+    Logger.getInstance().info("📄 [HardwareFingerprintProvider] activo.dat existe: " + existe);
+    return existe;
+}
+public static ConfigData leerActivoDat() {
+    Path path = Paths.get(System.getProperty("user.dir"), "doc", "activo.dat");
+
+    if (!Files.exists(path)) {
+        Logger.getInstance().warn("❌ activo.dat no existe en la ruta esperada.");
+        return null;
+    }
+
+    try {
+        byte[] bytes = Files.readAllBytes(path);
+        ObjectMapper mapper = new ObjectMapper();
+        ConfigData config = mapper.readValue(bytes, ConfigData.class);
+        Logger.getInstance().info("📄 activo.dat leído correctamente.");
+        return config;
+    } catch (IOException e) {
+        Logger.getInstance().error("⚠️ Error al leer activo.dat: " + e.getMessage());
+        return null;
+    }
+}
 
     public static boolean validarHuella() {
         Path rutaHuella = Paths.get(System.getenv("APPDATA") + "/EmsoftPOS/copiasistema.dll");

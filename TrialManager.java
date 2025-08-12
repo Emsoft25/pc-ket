@@ -2,13 +2,13 @@ package com.emsoft.pos.forms;
 
 public class TrialManager {
 
-    private final SistemaHelper sistemaHelper;
+   private final HardwareFingerprintProvider hardwareProvider;
     private final LicenseValidator licenseValidator;
     private final MonthlyKeyManager monthlyKeyManager;
     private final Logger logger;
 
     public TrialManager() {
-        this.sistemaHelper = new SistemaHelper();
+        this.hardwareProvider = new HardwareFingerprintProvider();
         this.licenseValidator = new LicenseValidator();
         this.monthlyKeyManager = new MonthlyKeyManager();
         this.logger = Logger.getInstance();
@@ -17,12 +17,12 @@ public class TrialManager {
     public TrialState validarEstadoDelSistema() {
         logger.info("🔍 Iniciando validación del sistema...");
 
-        if (!sistemaHelper.existeArchivoActivo()) {
+        if (!HardwareFingerprintProvider.existeArchivoActivo()) {
             logger.warn("❌ No se encontró activo.dat");
             return TrialState.ARCHIVO_INEXISTENTE;
         }
 
-        ConfigData config = sistemaHelper.leerActivoDat();
+        ConfigData config = HardwareFingerprintProvider.leerActivoDat();
         if (config == null) {
             logger.error("⚠️ Error al leer activo.dat");
             return TrialState.CONFIG_ERROR;
