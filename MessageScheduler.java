@@ -12,7 +12,7 @@ import javax.swing.JOptionPane;
  */
 public class MessageScheduler {
     public static void evaluarEstadoYMostrar() {
-        long dias = InstallManager.diasDesdeInstalacion();
+        long dias = InstallInfoProvider.diasDesdeInstalacion();
         
         if (dias == 28) {
             mostrar("Quedan 2 días de prueba.");
