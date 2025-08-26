@@ -40,17 +40,33 @@ public static boolean reconstruirDesdeClave(String clave, LocalDate fechaInstala
 
         generarActivoPrueba(ciDLL, titularDLL, fechaInstalacion);
         HardwareFingerprintProvider.agregarFechaActualizada();
-        logger.info("✅ activo.dat generado como PRUEBA");
-        return true;
+        
+        try {
+            HardwareFingerprintProvider.actualizarDatosEnDLL(ciDLL, titularDLL, "PRUEBA");
+            RegistroService.actualizarPlanInicial("PRUEBA");
+            logger.info("✅ activo.dat generado como PRUEBA y sincronizado con DLL");
+            return true;
+        } catch (IOException e) {
+            logger.error("❌ Error sincronizando PRUEBA: " + e.getMessage());
+            return false;
+        }
     }
 
     // 🔐 Activación FULL
     if (clave.equals(RegistroService.FULL_KEY)) {
         logger.info("🔧 Reconstruyendo como FULL por clave FULL...");
         generarActivoFull(ciDLL, titularDLL, fechaInstalacion);
-        HardwareFingerprintProvider.actualizarDatosEnDLL(ciDLL, titularDLL, "FULL");
-        HardwareFingerprintProvider.agregarFechaActualizada();
-        return true;
+        
+        try {
+            HardwareFingerprintProvider.actualizarDatosEnDLL(ciDLL, titularDLL, "FULL");
+            HardwareFingerprintProvider.agregarFechaActualizada();
+            RegistroService.actualizarPlanInicial("FULL");
+            logger.info("✅ activo.dat generado como FULL y sincronizado");
+            return true;
+        } catch (IOException e) {
+            logger.error("❌ Error sincronizando FULL: " + e.getMessage());
+            return false;
+        }
     }
 
     // 🔐 Activación MENSUAL
@@ -64,9 +80,17 @@ public static boolean reconstruirDesdeClave(String clave, LocalDate fechaInstala
         }
 
         generarActivoMensual(ciDLL, titularDLL, fechaInstalacion);
-        //--> HardwareFingerprintProvider.actualizarDatosEnDLL(ciDLL, titularDLL, "MENSUAL");
-        // HardwareFingerprintProvider.agregarFechaActualizada();
-        return true;
+        
+        try {
+            HardwareFingerprintProvider.actualizarDatosEnDLL(ciDLL, titularDLL, "MENSUAL");
+            HardwareFingerprintProvider.agregarFechaActualizada();
+            RegistroService.actualizarPlanInicial("MENSUAL");
+            logger.info("✅ activo.dat generado como MENSUAL y sincronizado");
+            return true;
+        } catch (IOException e) {
+            logger.error("❌ Error sincronizando MENSUAL: " + e.getMessage());
+            return false;
+        }
     }
 
     logger.error("⛔ Clave inválida. No se puede reconstruir.");

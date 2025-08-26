@@ -19,7 +19,23 @@ public class RegistroService {
      public static final String PRUEBA_KEY = "EMSOFT-123";
      public static final String MASTER_KEY = "EMSOFT-2025";
      public static final String FULL_KEY = "EMSOFT-FULL";
-
+     
+public static void actualizarPlanInicial(String plan) throws IOException {
+    Path path = Paths.get(INSTALL_FILE);
+    
+    List<String> lines = new ArrayList<>();
+    lines.add("Plan: " + plan.toUpperCase());
+    lines.add("Fecha_actualizada: " + LocalDate.now());
+    
+    // Agregar claves mensuales vacías si es MENSUAL
+    if ("MENSUAL".equalsIgnoreCase(plan)) {
+        List<String> claves = ClaveMensualGenerator.generarClavesMensuales("3000000");
+        lines.addAll(claves);
+    }
+    
+    Files.write(path, lines);
+    logger.info("✅ activo.dat inicializado con plan: " + plan);
+}
 public static String solicitarClaveManual() {
     String input = JOptionPane.showInputDialog("🔒 Ingrese clave para activar:");
     return (input != null) ? input.trim() : null;
@@ -173,19 +189,19 @@ public static boolean requiereClaveMensual() {
     try {
         List<String> lines = Files.readAllLines(Paths.get(INSTALL_FILE));
         for (String line : lines) {
-//            if (line.startsWith("Fecha_actualizada:")) {   cambio por fecha
-            if (line.startsWith("Fecha:")) { 
+            // CAMBIO: Usar Fecha_actualizada en lugar de Fecha
+            if (line.startsWith("Fecha_actualizada:")) {
                 String fechaStr = line.split(":")[1].trim();
                 LocalDate fecha = LocalDate.parse(fechaStr);
                 long dias = ChronoUnit.DAYS.between(fecha, LocalDate.now());
-                return dias > 30;
+                return dias > ConfiguracionLicencia.DIAS_MENSUAL + ConfiguracionLicencia.DIAS_GRACIA_MENSUAL;
             }
         }
     } catch (IOException e) {
         Logger.getInstance().error("⚠️ Error leyendo Fecha_actualizada: " + e.getMessage());
     }
-        return true; // Si no se encuentra la fecha, se requiere clave
-    }
+    return true;
+}
 public static boolean activarSerialMensual(String claveIngresada) throws IOException {
     Path path = Paths.get(INSTALL_FILE);
     List<String> lines = Files.readAllLines(path);
