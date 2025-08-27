@@ -7,7 +7,7 @@ import java.time.temporal.ChronoUnit;
 public class GestorLicencias {
     private static final Logger logger = Logger.getInstance();
     
-    public static ResultadoValidacion validarLicencia() {
+    public static ResultadoValidacion validarLicencia() throws IOException {
         logger.info("🔍 Validando licencia del sistema...");
         
         // Validar integridad del sistema
@@ -58,45 +58,46 @@ public class GestorLicencias {
     if (!planDLL.equalsIgnoreCase(planActivo)) {
         logger.error("⛔ Inconsistencia: DLL=" + planDLL + ", activo.dat=" + planActivo);
         return false;
+        }
+
+        // ... resto de validación de fechas ...
+        return true;
     }
     
-    // ... resto de validación de fechas ...
-    return true;
-}
-    
-    private static ResultadoValidacion validarPorTipo(TipoLicencia tipo) {
-        LocalDate fechaInicio = HardwareFingerprintProvider.getFechaInstalacionDesdeDLL();
-        if (fechaInicio == null) {
-            return ResultadoValidacion.error("Fecha de inicio no encontrada");
-        }
-        
-        long diasTranscurridos = ChronoUnit.DAYS.between(fechaInicio, LocalDate.now());
-        
-        switch (tipo) {
-            case FULL:
-                return ResultadoValidacion.valido(TipoLicencia.FULL, Integer.MAX_VALUE);
-                
-            case PRUEBA:
-                if (diasTranscurridos <= tipo.getDuracionDias()) {
-                    int restantes = tipo.getDuracionDias() - (int)diasTranscurridos;
-                    return ResultadoValidacion.valido(TipoLicencia.PRUEBA, restantes);
-                } else {
-                    return ResultadoValidacion.vencido("Período de prueba vencido");
-                }
-                
-            case MENSUAL:
-                if (diasTranscurridos <= tipo.getDuracionDias()) {
-                    int restantes = tipo.getDuracionDias() - (int)diasTranscurridos;
-                    return ResultadoValidacion.valido(TipoLicencia.MENSUAL, restantes);
-                } else if (diasTranscurridos <= tipo.getDuracionDias() + tipo.getDiasGracia()) {
-                    int diasGracia = (int)(tipo.getDuracionDias() + tipo.getDiasGracia() - diasTranscurridos);
-                    return ResultadoValidacion.enGracia(TipoLicencia.MENSUAL, diasGracia);
-                } else {
-                    return ResultadoValidacion.vencido("Licencia mensual vencida");
-                }
-                
+private static ResultadoValidacion validarPorTipo(TipoLicencia tipo) throws IOException {
+    LocalDate fechaInicio = HardwareFingerprintProvider.getFechaInstalacionDesdeDLL();
+    if (fechaInicio == null) {
+        return ResultadoValidacion.error("Fecha de inicio no encontrada");
+    }
+
+    long diasTranscurridos = ChronoUnit.DAYS.between(fechaInicio, LocalDate.now());
+
+    switch (tipo) {
+        case FULL:
+            return ResultadoValidacion.valido(TipoLicencia.FULL, Integer.MAX_VALUE);
+
+        case PRUEBA:
+            if (diasTranscurridos <= tipo.getDuracionDias()) {
+                int restantes = tipo.getDuracionDias() - (int)diasTranscurridos;
+                return ResultadoValidacion.valido(TipoLicencia.PRUEBA, restantes);
+            } else {
+                return ResultadoValidacion.vencido("Período de prueba vencido");
+            }
+
+        // En el método evaluarEstado(), cambiar el case MENSUAL:
+        case MENSUAL:
+            if (diasTranscurridos <= 30) {
+                return ResultadoValidacion.valido(TipoLicencia.MENSUAL, 30 - (int)diasTranscurridos);
+            } else if (diasTranscurridos <= 30 + 20) { // DIAS_MENSUAL + DIAS_GRACIA
+                return ResultadoValidacion.enGracia(TipoLicencia.MENSUAL, 
+                    (int)(50 - diasTranscurridos), true);
+            } else {
+                return ResultadoValidacion.vencido("Licencia y período de gracia vencidos");
+            }
+
             default:
-                return ResultadoValidacion.error("Tipo de licencia desconocido");
+                return ResultadoValidacion.error("Tipo desconocido");
         }
-    }
+    }    
+      
 }

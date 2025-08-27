@@ -13,7 +13,24 @@ public class ClaveMensualGenerator {
     public static String generateSimpleKey() {
     return (char) ('A' + new Random().nextInt(26)) + String.valueOf(100 + new Random().nextInt(900));
 }
+public static boolean tieneClavesDisponibles() throws IOException {
+    Path path = Paths.get(RegistroService.INSTALL_FILE);
+    if (!Files.exists(path)) return false;
+    
+    List<String> lines = Files.readAllLines(path);
+    return lines.stream()
+        .anyMatch(l -> l.trim().endsWith(":disponible"));
+}
 
+public static List<String> obtenerClavesDisponibles() throws IOException {
+    Path path = Paths.get(RegistroService.INSTALL_FILE);
+    if (!Files.exists(path)) return new ArrayList<>();
+    
+    return Files.readAllLines(path).stream()
+        .filter(l -> l.trim().endsWith(":disponible"))
+        .map(l -> l.split(":")[0])
+        .collect(Collectors.toList());
+}
 public static List<String> generarClavesMensuales(String ci) {
     List<String> claves = new ArrayList<>();
     for (int i = 0; i < 5; i++) {

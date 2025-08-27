@@ -20,34 +20,47 @@ public class RegistroService {
      public static final String MASTER_KEY = "EMSOFT-2025";
      public static final String FULL_KEY = "EMSOFT-FULL";
      
+  
+         
+// ✅ Método completo con fecha
 public static void actualizarPlanInicial(String plan) throws IOException {
     Path path = Paths.get(INSTALL_FILE);
+     LocalDate fechaDLL = HardwareFingerprintProvider.getFechaInstalacionDesdeDLL();
     
     List<String> lines = new ArrayList<>();
     lines.add("Plan: " + plan.toUpperCase());
-    lines.add("Fecha_actualizada: " + LocalDate.now());
+    lines.add("Fecha_actualizada: " + fechaDLL);
     
-    // Agregar claves mensuales vacías si es MENSUAL
+    // Calcular fecha_pago según plan
     if ("MENSUAL".equalsIgnoreCase(plan)) {
-        List<String> claves = ClaveMensualGenerator.generarClavesMensuales("3000000");
-        lines.addAll(claves);
+        lines.add("Fecha_pago: " + fechaDLL.plusDays(ConfiguracionLicencia.DIAS_MENSUAL));
+    }
+    
+    // Datos del DLL
+    String ci = HardwareFingerprintProvider.leerCampoDesdeDLL("ci");
+    String titular = HardwareFingerprintProvider.leerCampoDesdeDLL("titular");
+    
+    if (ci != null) lines.add("CI: " + ci);
+    if (titular != null) lines.add("Titular: " + titular);
+    
+    // Agregar claves solo para mensual
+    if ("MENSUAL".equalsIgnoreCase(plan)) {
+        lines.addAll(ClaveMensualGenerator.generarClavesMensuales(ci != null ? ci : "3000000"));
     }
     
     Files.write(path, lines);
-    logger.info("✅ activo.dat inicializado con plan: " + plan);
-}
+    logger.info("✅ activo.dat creado con fecha del DLL: " + fechaDLL);
+    }
+
 public static String solicitarClaveManual() {
     String input = JOptionPane.showInputDialog("🔒 Ingrese clave para activar:");
     return (input != null) ? input.trim() : null;
-}
-
+    }
 public void completarRegistroUsuario(String modoLicencia) throws IOException {
         Path path = Paths.get(INSTALL_FILE);
         List<String> lines = Files.readAllLines(path);
         int indexCI = -1, indexTitular = -1;
         boolean necesitaRegistro = false;
-        if (datosActualizados) return;
-
 
         for (int i = 0; i < lines.size(); i++) {
             String line = lines.get(i).trim().toLowerCase();
@@ -157,7 +170,7 @@ public boolean enviarRegistroWeb(String ci, String titular, LocalDate fecha, Str
     } 
  }
 
-private static String solicitarDato(String mensaje, String regex) {
+static String solicitarDato(String mensaje, String regex) {
         String input;
         do {
             input = JOptionPane.showInputDialog(mensaje);
@@ -265,34 +278,12 @@ public static boolean claveMensualActiva() {
         return false;
         }
     }
-    /**
-     * Solicita un campo al usuario por consola o interfaz.
-     * @param nombreCampo El nombre del campo a solicitar (ej: "CI", "Titular").
-     * @return El valor ingresado por el usuario, o null si no se ingresó nada.
-     */
-/*public static String solicitarCampo(String nombreCampo) {
-        System.out.print("🔹 Ingrese " + nombreCampo + ": ");
-        try {
-            BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
-            String valor = reader.readLine();
-            if (valor == null || valor.trim().isEmpty()) {
-                logger.warn("⚠️ Campo '" + nombreCampo + "' no ingresado.");
-                return null;
-            }
-            return valor.trim();
-        } catch (IOException e) {
-            logger.error("⛔ Error al leer campo '" + nombreCampo + "': " + e.getMessage());
-            return null;
-        }
-    }
-*/
-private static boolean datosActualizados = false;
-public static boolean validarYActualizarDatosReales(String plan) {
-    if (datosActualizados) return true;
 
+public static boolean validarYActualizarDatosReales(String plan) {
     String ci = HardwareFingerprintProvider.leerCampoDesdeDLL("ci");
     String titular = HardwareFingerprintProvider.leerCampoDesdeDLL("titular");
 
+    // ✅ Siempre verificar si hay datos genéricos
     if ("3000000".equals(ci) || "Juan Peres".equalsIgnoreCase(titular) || "Clientes Varios".equalsIgnoreCase(titular)) {
         Logger.getInstance().warn("⚠️ Datos genéricos detectados. Se requiere ingreso manual.");
 
@@ -303,11 +294,36 @@ public static boolean validarYActualizarDatosReales(String plan) {
         if (nuevoTitular == null) return false;
 
         HardwareFingerprintProvider.actualizarDatosEnDLL(nuevoCI.trim(), nuevoTitular.trim(), plan);
-        Logger.getInstance().info("✅ DLL actualizado con datos reales.");
+        
+        // 🔄 Actualizar también en activo.dat si existe
+        try {
+            RegistroService.actualizarDatosEnActivo(nuevoCI.trim(), nuevoTitular.trim(), plan);
+        } catch (IOException e) {
+            Logger.getInstance().error("❌ Error actualizando activo.dat: " + e.getMessage());
+        }
+        
+        Logger.getInstance().info("✅ Datos reales actualizados en DLL y activo.dat");
     }
 
-    datosActualizados = true;
-    return true;
+    return true; // Siempre retorna true si no hay error
 }
+public static void actualizarDatosEnActivo(String ci, String titular, String plan) throws IOException {
+    Path path = Paths.get(INSTALL_FILE);
+    if (!Files.exists(path)) return;
 
+    List<String> lines = Files.readAllLines(path);
+    
+        for (int i = 0; i < lines.size(); i++) {
+            String line = lines.get(i).trim();
+            if (line.startsWith("CI:")) {
+                lines.set(i, "CI: " + ci);
+            } else if (line.startsWith("Titular:")) {
+                lines.set(i, "Titular: " + titular);
+            } else if (line.startsWith("Plan:")) {
+                lines.set(i, "Plan: " + plan.toUpperCase());
+            }
+        }
+
+        Files.write(path, lines);
+    }
 }
